@@ -303,7 +303,7 @@ function renderPage(data) {
 
   // Absensi bulan ini
   const bulanIni = new Date().toISOString().slice(0,7);
-  const absBulanIni = absensi ? absensi.filter(a => String(a.bulan) === bulanIni) : [];
+  const absBulanIni = absensi ? absensi.filter(a => String(a.tanggal||a.bulan||'').startsWith(bulanIni)) : [];
   const totalHadir = absBulanIni.reduce((s,a) => s + (Number(a.hadir)||0), 0);
 
   document.getElementById('app').innerHTML = `
