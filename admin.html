@@ -303,7 +303,10 @@ tbody td{padding:10px 12px;color:var(--text);vertical-align:middle;}
     <div class="card">
       <div class="card-header">
         <div class="card-title">📊 Rekap Absensi</div>
-        <input type="month" id="abs-rekap-bulan" style="width:auto;font-size:12px;padding:5px 8px;border:2px solid var(--border);border-radius:8px;background:var(--blue-50)">
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="month" id="abs-rekap-bulan" style="width:auto;font-size:12px;padding:5px 8px;border:2px solid var(--border);border-radius:8px;background:var(--blue-50)">
+          <button class="btn btn-outline btn-sm" id="btn-refresh-rekap" title="Refresh rekap">🔄</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -677,6 +680,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.getElementById('btn-save-abs').addEventListener('click', saveAbsensi);
   document.getElementById('abs-rekap-bulan').addEventListener('change', loadRekapAbsensi);
+  document.getElementById('btn-refresh-rekap').addEventListener('click', loadRekapAbsensi);
 
   document.getElementById('inv-murid').addEventListener('change', onInvMurid);
   document.getElementById('btn-preview-inv').addEventListener('click', previewInvoice);
@@ -952,15 +956,16 @@ async function loadRekapAbsensi(){
   const bulan=v('abs-rekap-bulan')||ym();
   const tb=document.getElementById('tbl-abs-rekap');
   try{
-    const raw=await GET({action:'get_absensi',bulan});
-    const absensi=Array.isArray(raw)?raw:[];
-    console.log('[get_absensi] bulan='+bulan+' raw=',raw);
+    // Ambil semua data tanpa filter bulan dari GAS, filter di frontend
+    const raw=await GET({action:'get_absensi'});
+    const semua=Array.isArray(raw)?raw:[];
+    // Filter bulan di sisi frontend — cocokkan dengan field tanggal atau bulan
+    const absensi=semua.filter(r=>{
+      const tgl=String(r.tanggal||r.bulan||'');
+      return tgl.startsWith(bulan);
+    });
     const aktif=muridList.filter(m=>m.aktif==='aktif');
     if(!aktif.length){tb.innerHTML='<tr><td colspan="3" class="empty">Belum ada murid.</td></tr>';return;}
-    if(!absensi.length){
-      tb.innerHTML=aktif.map(m=>'<tr><td><b>'+m.nama+'</b></td><td>0 sesi</td><td>⭐ 0</td></tr>').join('');
-      return;
-    }
     tb.innerHTML=aktif.map(m=>{
       const rows=absensi.filter(r=>String(r.murid_id)===String(m.id)||String(r.id_murid)===String(m.id));
       const totalHadir=rows.reduce((s,r)=>s+(Number(r.hadir)||0),0);
