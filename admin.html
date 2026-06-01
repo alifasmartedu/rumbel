@@ -950,18 +950,27 @@ async function saveAbsensi(){
 }
 async function loadRekapAbsensi(){
   const bulan=v('abs-rekap-bulan')||ym();
+  const tb=document.getElementById('tbl-abs-rekap');
   try{
-    const absensi=await GET({action:'get_absensi',bulan});
-    const tb=document.getElementById('tbl-abs-rekap');
+    const raw=await GET({action:'get_absensi',bulan});
+    const absensi=Array.isArray(raw)?raw:[];
+    console.log('[get_absensi] bulan='+bulan+' raw=',raw);
     const aktif=muridList.filter(m=>m.aktif==='aktif');
     if(!aktif.length){tb.innerHTML='<tr><td colspan="3" class="empty">Belum ada murid.</td></tr>';return;}
+    if(!absensi.length){
+      tb.innerHTML=aktif.map(m=>'<tr><td><b>'+m.nama+'</b></td><td>0 sesi</td><td>⭐ 0</td></tr>').join('');
+      return;
+    }
     tb.innerHTML=aktif.map(m=>{
-      const rows=absensi.filter(r=>String(r.murid_id)===String(m.id));
+      const rows=absensi.filter(r=>String(r.murid_id)===String(m.id)||String(r.id_murid)===String(m.id));
       const totalHadir=rows.reduce((s,r)=>s+(Number(r.hadir)||0),0);
       const bintang=rows.reduce((s,r)=>s+(Number(r.bintang_dapat)||0),0);
       return'<tr><td><b>'+m.nama+'</b></td><td>'+totalHadir+' sesi</td><td>⭐ '+bintang+'</td></tr>';
     }).join('');
-  }catch(e){toast('⚠ '+e.message);}
+  }catch(e){
+    console.error('[get_absensi] error:',e);
+    tb.innerHTML='<tr><td colspan="3" class="empty" style="color:var(--danger)">⚠ Gagal muat rekap: '+e.message+'</td></tr>';
+  }
 }
 
 // ── INVOICE ───────────────────────────────────────────────────
